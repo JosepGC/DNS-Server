@@ -174,8 +174,50 @@ impl BytePacketBuffer {
 
         Ok(())
     }
-}
 
+    fn write(&mut self, num: u8) -> Result<()>{
+        if self.pos + 1 >= 512 {
+            return Err("End of buffer".into());
+        }
+        self.buf[self.pos] = num;
+        self.pos += 1;
+        Ok(())
+    }
+
+    fn write_u8(&mut self, num: u8) -> Result<()>{
+        self.write(num)?;
+        Ok(())
+    }
+
+    fn write_u16(&mut self, num: u16) -> Result<()>{
+        self.write((num >> 8) as u8)?;
+        self.write((num & 0xFF) as u8)?;
+        Ok(())
+    }
+    
+    fn write_u32(&mut self, num: u32) -> Result<()>{
+        self.write(((num >> 24) & 0xFF) as u8)?;
+        self.write(((num >> 16) & 0xFF) as u8)?;
+        self.write(((num >> 8) & 0xFF) as u8)?;
+        self.write(((num >> 0) & 0xFF) as u8)?;
+        Ok(())
+    }
+
+    fn write_qname(&self, nom: &str) -> Result<()>{
+        for label in qname.split(".") {
+            let len = label.len();
+            if len > 0x3f {
+                return Err("Single label exceeds 63 characters of length".into());
+            }
+            self.write(len as u8)?;
+            for b in label {
+                self.write(*b)?;                
+            }
+        }
+        self.write(0)?;
+        Ok(())
+    }
+}
 //Result code
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
  pub enum ResultCode{
